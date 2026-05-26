@@ -1,0 +1,154 @@
+/* =========================================================
+   Eduvos Marketplace – Global styles
+   shadcn-inspired design tokens, Tailwind handles utilities
+   ========================================================= */
+
+:root {
+    --radius:     0.75rem;
+    --border:     #e5e7eb;
+    --muted:      #f3f4f6;
+    --muted-fg:   #6b7280;
+    --card-shadow: 0 1px 3px 0 rgb(0 0 0 / .07), 0 1px 2px -1px rgb(0 0 0 / .07);
+}
+
+/* --- Cards ------------------------------------------------ */
+.card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--card-shadow);
+    transition: box-shadow .15s ease, transform .15s ease;
+}
+
+.card:hover {
+    box-shadow: 0 4px 12px rgb(0 0 0 / .1);
+    transform: translateY(-2px);
+}
+
+/* --- Listing grid card ------------------------------------ */
+.listing-card img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.listing-card .no-image {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted-fg);
+    font-size: 2.5rem;
+    border-radius: var(--radius) var(--radius) 0 0;
+}
+
+/* --- Buttons --------------------------------------------- */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .375rem;
+    padding: .5rem 1.25rem;
+    border-radius: .5rem;
+    font-size: .875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s, opacity .15s;
+    border: none;
+    text-decoration: none;
+}
+
+.btn-primary   { background: #2563eb; color: #fff; }
+.btn-primary:hover { background: #1d4ed8; }
+
+.btn-yellow    { background: #facc15; color: #111; }
+.btn-yellow:hover { background: #eab308; }
+
+.btn-outline   { background: transparent; color: #374151; border: 1px solid var(--border); }
+.btn-outline:hover { background: var(--muted); }
+
+.btn-danger    { background: #ef4444; color: #fff; }
+.btn-danger:hover { background: #dc2626; }
+
+.btn-sm { padding: .375rem .875rem; font-size: .8125rem; }
+
+/* --- Form inputs ----------------------------------------- */
+.form-input {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: .5rem;
+    padding: .5rem .75rem;
+    font-size: .875rem;
+    background: #fff;
+    transition: border-color .15s, box-shadow .15s;
+    outline: none;
+}
+
+.form-input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgb(37 99 235 / .15);
+}
+
+.form-label {
+    display: block;
+    font-size: .875rem;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: .375rem;
+}
+
+.form-group { margin-bottom: 1.25rem; }
+
+/* --- Badge ----------------------------------------------- */
+.badge {
+    display: inline-block;
+    padding: .2rem .6rem;
+    border-radius: 9999px;
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.badge-available  { background: #dcfce7; color: #166534; }
+.badge-pending    { background: #fef9c3; color: #713f12; }
+.badge-completed  { background: #e0e7ff; color: #3730a3; }
+.badge-wanted     { background: #fce7f3; color: #9d174d; }
+
+/* --- Misc ------------------------------------------------- */
+.divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1.5rem 0;
+}
+
+/* Price "Wanted" pill */
+.price-wanted {
+    display: inline-block;
+    background: #fce7f3;
+    color: #9d174d;
+    font-size: .8rem;
+    font-weight: 700;
+    padding: .15rem .55rem;
+    border-radius: 9999px;
+    vertical-align: middle;
+}
+
+/* QR container */
+.qr-box {
+    display: inline-block;
+    padding: 1rem;
+    background: #fff;
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--card-shadow);
+}
+
+/* Page hero search */
+.hero-search {
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+    padding: 2.5rem 1rem;
+    text-align: center;
+}
