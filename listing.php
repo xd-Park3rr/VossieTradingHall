@@ -82,13 +82,16 @@ require_once __DIR__ . '/includes/header.php';
 
         <!-- Image -->
         <div class="md:w-1/2">
-            <?php if ($listing['image']): ?>
-                <img src="/uploads/<?= htmlspecialchars($listing['image']) ?>"
+            <?php $imgSrc = listing_image_src($listing['image']); ?>
+            <?php if ($imgSrc): ?>
+                <img src="<?= htmlspecialchars($imgSrc) ?>"
                      alt="<?= htmlspecialchars($listing['title']) ?>"
-                     class="w-full rounded-card object-cover max-h-[420px]">
+                     class="w-full rounded-xl object-cover shadow-sm" style="max-height:440px">
             <?php else: ?>
-                <div class="w-full rounded-card bg-gray-100 flex items-center justify-center"
-                     style="min-height:280px; font-size:5rem;">📦</div>
+                <div class="w-full rounded-xl bg-gray-100 flex items-center justify-center"
+                     style="min-height:300px; font-size:6rem;">
+                    <?= category_icon($listing['category']) ?>
+                </div>
             <?php endif; ?>
         </div>
 

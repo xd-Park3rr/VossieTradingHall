@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/helpers.php';
 
 require_admin();
 
@@ -53,14 +54,14 @@ require_once __DIR__ . '/includes/header.php';
     <!-- Stats row -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <?php foreach ([
-            ['Users',            $totalUsers,     'text-blue-600'],
-            ['Total Listings',   $totalListings,  'text-gray-700'],
-            ['Active Listings',  $activeListings, 'text-green-600'],
-            ['Transactions',     $totalTx,        'text-indigo-600'],
-        ] as [$label, $val, $cls]): ?>
-            <div class="card p-5 text-center">
-                <p class="text-3xl font-bold <?= $cls ?>"><?= $val ?></p>
-                <p class="text-sm text-gray-500 mt-1"><?= $label ?></p>
+            ['Users',           $totalUsers,    '#2563eb'],
+            ['Total Listings',  $totalListings, '#374151'],
+            ['Active Listings', $activeListings,'#15803d'],
+            ['Transactions',    $totalTx,       '#7c3aed'],
+        ] as [$label, $val, $color]): ?>
+            <div class="stat-card">
+                <p class="stat-value" style="color:<?= $color ?>"><?= $val ?></p>
+                <p class="stat-label"><?= $label ?></p>
             </div>
         <?php endforeach; ?>
     </div>

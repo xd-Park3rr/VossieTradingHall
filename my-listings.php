@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/helpers.php';
 
 require_login();
 
@@ -73,13 +74,15 @@ require_once __DIR__ . '/includes/header.php';
                         <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                             <td class="px-4 py-3">
                                 <div class="flex items-center gap-3">
-                                    <?php if ($item['image']): ?>
-                                        <img src="/uploads/<?= htmlspecialchars($item['image']) ?>"
+                                    <?php $imgSrc = listing_image_src($item['image']); ?>
+                                    <?php if ($imgSrc): ?>
+                                        <img src="<?= htmlspecialchars($imgSrc) ?>"
                                              alt="" class="w-12 h-12 rounded-lg object-cover shrink-0">
                                     <?php else: ?>
                                         <div class="w-12 h-12 rounded-lg bg-gray-100 flex items-center
-                                                    justify-content-center text-xl text-gray-400 shrink-0
-                                                    flex items-center justify-center">📦</div>
+                                                    justify-center text-xl shrink-0">
+                                            <?= category_icon($item['category']) ?>
+                                        </div>
                                     <?php endif; ?>
                                     <a href="/listing.php?id=<?= $item['id'] ?>"
                                        class="font-medium text-gray-900 hover:text-blue-600 line-clamp-1">

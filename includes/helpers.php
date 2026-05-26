@@ -57,3 +57,35 @@ function qr_image_url(string $token): string {
     $confirmUrl = BASE_URL . '/confirm-transaction.php?token=' . urlencode($token);
     return 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' . urlencode($confirmUrl);
 }
+
+/**
+ * Resolve a listing image value to a displayable src URL.
+ * Supports:
+ *   - full external URLs (https://picsum.photos/...)
+ *   - local filenames stored in /uploads/
+ *   - null → returns null
+ */
+function listing_image_src(?string $image): ?string {
+    if (!$image) return null;
+    if (str_starts_with($image, 'https://') || str_starts_with($image, 'http://')) {
+        return $image;
+    }
+    return '/uploads/' . $image;
+}
+
+/**
+ * Emoji icon for a category — used in fallback cards and pills.
+ */
+function category_icon(string $category): string {
+    return match(true) {
+        str_contains($category, 'Textbook') || str_contains($category, 'Study') => '📚',
+        str_contains($category, 'Electronic') || str_contains($category, 'Gadget') => '💻',
+        str_contains($category, 'Cloth') || str_contains($category, 'Accessor') => '👗',
+        str_contains($category, 'Food') || str_contains($category, 'Snack') => '🍱',
+        str_contains($category, 'Art') || str_contains($category, 'Craft') => '🎨',
+        str_contains($category, 'Beauty') || str_contains($category, 'Hair') => '💅',
+        str_contains($category, 'Tutor') || str_contains($category, 'Service') => '🎓',
+        str_contains($category, 'Sport') || str_contains($category, 'Gaming') => '🎮',
+        default => '📦',
+    };
+}
