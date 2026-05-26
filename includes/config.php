@@ -3,7 +3,8 @@
 define('ALLOWED_DOMAIN', '@vossie.net');
 define('ADMIN_EMAIL',    'admin@vossie.net'); // change to real admin email
 define('SITE_NAME',      'Eduvos Marketplace');
-define('BASE_URL',       'http://localhost:8080');
+// Override BASE_URL via environment variable in production (Azure App Service config)
+define('BASE_URL', rtrim(getenv('BASE_URL') ?: 'http://localhost:8080', '/'));
 
 define('CATEGORIES', [
     'Textbooks & Study Material',

@@ -1,6 +1,17 @@
 <?php
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/auth.php';
+
+// --- Global auth wall ---
+// Only login.php and register.php are accessible without a session.
+$_publicPaths = ['/login.php', '/register.php'];
+$_currentURI  = $_SERVER['REQUEST_URI'] ?? '/';
+$_currentPath = parse_url($_currentURI, PHP_URL_PATH);
+if (!is_logged_in() && !in_array($_currentPath, $_publicPaths, true)) {
+    header('Location: /login.php?back=' . urlencode($_currentURI));
+    exit;
+}
+
 $_currentUser = current_user();
 ?>
 <!DOCTYPE html>
