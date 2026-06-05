@@ -66,7 +66,7 @@ require_once __DIR__ . '/includes/header.php';
                         <th class="text-left px-4 py-3 font-semibold text-gray-600">Price</th>
                         <th class="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
                         <th class="text-left px-4 py-3 font-semibold text-gray-600">Date</th>
-                        <th class="px-4 py-3"></th>
+                        <th class="text-left px-4 py-3 font-semibold text-gray-600">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -110,16 +110,39 @@ require_once __DIR__ . '/includes/header.php';
                             </td>
                             <td class="px-4 py-3">
                                 <div class="flex gap-2 justify-end">
+                                    <a href="/listing-qr.php?id=<?= $item['id'] ?>"
+                                       class="btn btn-outline btn-sm"
+                                       title="Show transaction QR"
+                                       aria-label="Show transaction QR for <?= htmlspecialchars($item['title']) ?>">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                             stroke="currentColor" stroke-width="2" class="w-4 h-4">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 15h2v2h-2zM19 15h1v1h-1zM18 18h2v2h-2zM15 19h1v1h-1z"/>
+                                        </svg>
+                                    </a>
                                     <a href="/listing.php?id=<?= $item['id'] ?>"
-                                       class="btn btn-outline btn-sm">View</a>
+                                       class="btn btn-outline btn-sm"
+                                       title="View listing"
+                                       aria-label="View listing <?= htmlspecialchars($item['title']) ?>">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                             stroke="currentColor" stroke-width="2" class="w-4 h-4">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/>
+                                            <circle cx="12" cy="12" r="3"/>
+                                        </svg>
+                                    </a>
                                     <?php if ($item['status'] !== 'completed'): ?>
                                         <form method="POST" class="inline">
                                             <?= csrf_field() ?>
                                             <input type="hidden" name="listing_id" value="<?= $item['id'] ?>">
                                             <button name="action" value="delete"
                                                     class="btn btn-danger btn-sm"
+                                                    title="Delete listing"
+                                                    aria-label="Delete listing <?= htmlspecialchars($item['title']) ?>"
                                                     data-confirm="Delete this listing? This cannot be undone.">
-                                                Delete
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                                     stroke="currentColor" stroke-width="2" class="w-4 h-4">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/>
+                                                </svg>
                                             </button>
                                         </form>
                                     <?php endif; ?>
