@@ -5,15 +5,21 @@ require_once __DIR__ . '/includes/helpers.php';
 
 require_admin();
 
-// Handle delete
+$userForm = [
+    'name' => '',
+    'email' => '',
+    'phone' => '',
+    'is_admin' => '0',
+];
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();
 
-    $action     = $_POST['action']     ?? '';
+    $action     = $_POST['action'] ?? '';
     $listing_id = filter_input(INPUT_POST, 'listing_id', FILTER_VALIDATE_INT);
+    $user_id    = filter_input(INPUT_POST, 'user_id', FILTER_VALIDATE_INT);
 
     if ($action === 'delete_listing' && $listing_id) {
-        // Fetch image before deleting
         $row = $pdo->prepare("SELECT image FROM listings WHERE id = :id");
         $row->execute([':id' => $listing_id]);
         $img = $row->fetchColumn();
@@ -24,13 +30,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $pdo->prepare("DELETE FROM listings WHERE id = :id")->execute([':id' => $listing_id]);
         $_SESSION['flash'] = ['type' => 'success', 'msg' => "Listing #$listing_id deleted."];
+    } elseif ($action === 'create_user') {
+        $userForm['name'] = trim($_POST['name'] ?? '');
+        $userForm['email'] = strtolower(trim($_POST['email'] ?? ''));
+        $userForm['phone'] = trim($_POST['phone'] ?? '');
+        $userForm['is_admin'] = (($_POST['is_admin'] ?? '0') === '1') ? '1' : '0';
+        $password = $_POST['password'] ?? '';
+
+        if ($userForm['name'] === '') {
+            $_SESSION['flash'] = ['type' => 'error', 'msg' => 'Full name is required.'];
+        } elseif (!is_allowed_email($userForm['email'])) {
+            $_SESSION['flash'] = ['type' => 'error', 'msg' => 'Only @vossie.net email addresses are allowed.'];
+        } elseif (strlen($password) < 8) {
+            $_SESSION['flash'] = ['type' => 'error', 'msg' => 'Password must be at least 8 characters.'];
+        } else {
+            $check = $pdo->prepare("SELECT id FROM users WHERE email = :email LIMIT 1");
+            $check->execute([':email' => $userForm['email']]);
+
+            if ($check->fetch()) {
+                $_SESSION['flash'] = ['type' => 'error', 'msg' => 'A user with that email already exists.'];
+            } else {
+                $hash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
+                $pdo->prepare("
+                    INSERT INTO users (name, email, password_hash, phone, is_admin)
+                    VALUES (:name, :email, :hash, :phone, :is_admin)
+                ")->execute([
+                    ':name' => $userForm['name'],
+                    ':email' => $userForm['email'],
+                    ':hash' => $hash,
+                    ':phone' => $userForm['phone'],
+                    ':is_admin' => (int)$userForm['is_admin'],
+                ]);
+
+                $_SESSION['flash'] = ['type' => 'success', 'msg' => 'User created successfully.'];
+            }
+        }
+    } elseif ($action === 'delete_user' && $user_id) {
+        if ($user_id === current_user_id()) {
+            $_SESSION['flash'] = ['type' => 'error', 'msg' => 'You cannot delete your own admin account.'];
+        } else {
+            $pdo->prepare("DELETE FROM users WHERE id = :id")->execute([':id' => $user_id]);
+            $_SESSION['flash'] = ['type' => 'success', 'msg' => "User #$user_id deleted."];
+        }
     }
 
     header('Location: /admin.php');
     exit;
 }
 
-// Fetch all listings (newest first) with seller info
 $listings = $pdo->query("
     SELECT l.*, u.name AS seller_name, u.email AS seller_email
     FROM listings l
@@ -38,11 +85,16 @@ $listings = $pdo->query("
     ORDER BY l.created_at DESC
 ")->fetchAll();
 
-// Stats
-$totalUsers    = (int)$pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
-$totalListings = (int)$pdo->query("SELECT COUNT(*) FROM listings")->fetchColumn();
-$totalTx       = (int)$pdo->query("SELECT COUNT(*) FROM transactions")->fetchColumn();
-$activeListings= (int)$pdo->query("SELECT COUNT(*) FROM listings WHERE status = 'available'")->fetchColumn();
+$users = $pdo->query("
+    SELECT id, name, email, phone, is_admin, created_at
+    FROM users
+    ORDER BY created_at DESC
+")->fetchAll();
+
+$totalUsers     = (int)$pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
+$totalListings  = (int)$pdo->query("SELECT COUNT(*) FROM listings")->fetchColumn();
+$totalTx        = (int)$pdo->query("SELECT COUNT(*) FROM transactions")->fetchColumn();
+$activeListings = (int)$pdo->query("SELECT COUNT(*) FROM listings WHERE status = 'available'")->fetchColumn();
 
 $pageTitle = 'Admin – ' . SITE_NAME;
 require_once __DIR__ . '/includes/header.php';
@@ -51,7 +103,6 @@ require_once __DIR__ . '/includes/header.php';
 <div class="max-w-6xl mx-auto px-4 py-10">
     <h1 class="text-2xl font-bold text-gray-900 mb-6">Admin Panel</h1>
 
-    <!-- Stats row -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <?php foreach ([
             ['Users',           $totalUsers,    '#2563eb'],
@@ -66,7 +117,113 @@ require_once __DIR__ . '/includes/header.php';
         <?php endforeach; ?>
     </div>
 
-    <!-- Listings table -->
+    <div class="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] mb-8">
+        <div class="card overflow-hidden">
+            <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                <h2 class="font-semibold text-gray-700">User Management</h2>
+                <span class="text-sm text-gray-400"><?= count($users) ?> total</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="text-left px-4 py-3 font-semibold text-gray-600">Name</th>
+                            <th class="text-left px-4 py-3 font-semibold text-gray-600">Email</th>
+                            <th class="text-left px-4 py-3 font-semibold text-gray-600">Role</th>
+                            <th class="text-left px-4 py-3 font-semibold text-gray-600">Joined</th>
+                            <th class="text-left px-4 py-3 font-semibold text-gray-600">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($users as $user): ?>
+                            <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                <td class="px-4 py-3">
+                                    <div class="font-medium text-gray-900"><?= htmlspecialchars($user['name']) ?></div>
+                                    <?php if (!empty($user['phone'])): ?>
+                                        <div class="text-xs text-gray-400"><?= htmlspecialchars($user['phone']) ?></div>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="px-4 py-3 text-gray-600"><?= htmlspecialchars($user['email']) ?></td>
+                                <td class="px-4 py-3">
+                                    <span class="badge <?= !empty($user['is_admin']) ? 'badge-pending' : 'badge-available' ?>">
+                                        <?= !empty($user['is_admin']) ? 'Admin' : 'Student' ?>
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-gray-400"><?= date('d M Y', strtotime($user['created_at'])) ?></td>
+                                <td class="px-4 py-3">
+                                    <?php if ((int)$user['id'] !== current_user_id()): ?>
+                                        <form method="POST" class="inline">
+                                            <?= csrf_field() ?>
+                                            <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
+                                            <button name="action" value="delete_user"
+                                                    class="btn btn-danger btn-sm"
+                                                    data-confirm="Delete user <?= htmlspecialchars($user['email']) ?>? This cannot be undone.">
+                                                Delete
+                                            </button>
+                                        </form>
+                                    <?php else: ?>
+                                        <span class="text-xs text-gray-400">Current account</span>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        <?php if (empty($users)): ?>
+                            <tr>
+                                <td colspan="5" class="px-4 py-8 text-center text-gray-400">No users yet.</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-semibold text-gray-700">Add User</h2>
+                <span class="text-xs text-gray-400">Admin-only</span>
+            </div>
+            <form method="POST" class="space-y-4">
+                <?= csrf_field() ?>
+                <input type="hidden" name="action" value="create_user">
+
+                <div>
+                    <label class="form-label" for="admin-name">Full name</label>
+                    <input id="admin-name" type="text" name="name" required class="form-input"
+                           value="<?= htmlspecialchars($userForm['name']) ?>">
+                </div>
+
+                <div>
+                    <label class="form-label" for="admin-email">Eduvos email</label>
+                    <input id="admin-email" type="email" name="email" required class="form-input"
+                           placeholder="user@vossie.net"
+                           value="<?= htmlspecialchars($userForm['email']) ?>">
+                </div>
+
+                <div>
+                    <label class="form-label" for="admin-phone">Phone / WhatsApp</label>
+                    <input id="admin-phone" type="tel" name="phone" class="form-input"
+                           value="<?= htmlspecialchars($userForm['phone']) ?>">
+                </div>
+
+                <div>
+                    <label class="form-label" for="admin-password">Temporary password</label>
+                    <input id="admin-password" type="password" name="password" required class="form-input"
+                           placeholder="Minimum 8 characters">
+                </div>
+
+                <div>
+                    <label class="form-label" for="admin-role">Role</label>
+                    <select id="admin-role" name="is_admin" class="form-input">
+                        <option value="0" <?= $userForm['is_admin'] === '0' ? 'selected' : '' ?>>Student user</option>
+                        <option value="1" <?= $userForm['is_admin'] === '1' ? 'selected' : '' ?>>Admin</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-full">Create user</button>
+            </form>
+        </div>
+    </div>
+
     <div class="card overflow-hidden">
         <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
             <h2 class="font-semibold text-gray-700">All Listings</h2>
@@ -82,7 +239,7 @@ require_once __DIR__ . '/includes/header.php';
                     <th class="text-left px-4 py-3 font-semibold text-gray-600">Price</th>
                     <th class="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
                     <th class="text-left px-4 py-3 font-semibold text-gray-600">Date</th>
-                    <th class="px-4 py-3"></th>
+                    <th class="text-left px-4 py-3 font-semibold text-gray-600">Actions</th>
                 </tr>
             </thead>
             <tbody>
