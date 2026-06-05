@@ -61,6 +61,7 @@ $_currentUser = current_user();
                           text-sm hover:bg-yellow-300 transition-colors">
                     + Sell
                 </a>
+                <a href="/scan-transaction.php" class="nav-link">Scan QR</a>
                 <a href="/my-listings.php" class="nav-link">My Listings</a>
                 <?php if (!empty($_currentUser['is_admin'])): ?>
                     <a href="/admin.php" class="nav-link text-red-300 hover:text-red-100">Admin</a>
@@ -119,6 +120,7 @@ $_currentUser = current_user();
     <div id="mobile-menu" class="hidden md:hidden bg-blue-900 border-t border-blue-800 px-4 py-3 space-y-1">
         <a href="/index.php" class="mobile-nav-link">Browse Listings</a>
         <?php if ($_currentUser): ?>
+            <a href="/scan-transaction.php" class="mobile-nav-link">Scan QR</a>
             <a href="/my-listings.php" class="mobile-nav-link">My Listings</a>
             <?php if (!empty($_currentUser['is_admin'])): ?>
                 <a href="/admin.php" class="mobile-nav-link text-red-300">Admin Panel</a>

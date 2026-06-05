@@ -41,9 +41,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && is_logged_in()) {
     // Only the seller can update status (except confirm-transaction handles completed)
     if ((int)$listing['user_id'] === current_user_id()) {
         if ($action === 'set_pending' && $listing['status'] === 'available') {
-            $pdo->prepare("UPDATE listings SET status = 'pending' WHERE id = :id")
-                ->execute([':id' => $id]);
-            $_SESSION['flash'] = ['type' => 'success', 'msg' => 'Listing marked as Pending.'];
+            $newQrToken = generate_qr_token();
+            $pdo->prepare("UPDATE listings SET status = 'pending', qr_token = :qr_token WHERE id = :id")
+                ->execute([':id' => $id, ':qr_token' => $newQrToken]);
+            $_SESSION['flash'] = ['type' => 'success', 'msg' => 'Listing marked as Pending. New transaction QR is ready.'];
         } elseif ($action === 'set_available' && $listing['status'] === 'pending') {
             $pdo->prepare("UPDATE listings SET status = 'available' WHERE id = :id")
                 ->execute([':id' => $id]);
@@ -167,6 +168,13 @@ require_once __DIR__ . '/includes/header.php';
                 </a>
             <?php endif; ?>
 
+            <?php if (is_logged_in() && !$isOwner && $listing['status'] === 'pending'): ?>
+                <a href="/scan-transaction.php"
+                   class="btn btn-primary btn-sm w-fit">
+                    Scan seller QR to confirm receipt
+                </a>
+            <?php endif; ?>
+
             <!-- Seller controls: pending toggle -->
             <?php if ($isOwner && $listing['status'] !== 'completed'): ?>
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-2">
@@ -191,12 +199,12 @@ require_once __DIR__ . '/includes/header.php';
         </div>
     </div>
 
-    <!-- QR Code (seller only, non-completed) -->
-    <?php if ($isOwner && $listing['status'] !== 'completed'): ?>
+    <!-- QR Code (seller only, pending transaction) -->
+    <?php if ($isOwner && $listing['status'] === 'pending'): ?>
         <div class="mt-10 card p-6">
             <h2 class="font-bold text-gray-900 text-lg mb-1">Transaction QR Code</h2>
             <p class="text-sm text-gray-500 mb-4">
-                Show this QR to the buyer when you meet in person. They scan it to confirm they received the item.
+                Show this QR to the buyer now that the listing is pending. They scan it to confirm receipt.
             </p>
             <div class="flex flex-col sm:flex-row items-center gap-6">
                 <div class="qr-box">
