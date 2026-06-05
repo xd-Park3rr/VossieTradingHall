@@ -54,35 +54,12 @@ jobs:
             https://api.github.com/user/packages/container/eduvosmarket-web/visibility \
             -d '{"visibility":"public"}'
 
-      - name: Azure login (service principal)
-        if: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE == '' && secrets.AZURE_CREDENTIALS != '' }}
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Deploy image to Azure Web App (publish profile)
-        if: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE != '' }}
+      - name: Deploy image to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name:        ${{ secrets.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           images:          ${{ steps.image.outputs.image_latest }}
-
-      - name: Deploy image to Azure Web App (azure login)
-        if: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE == '' && secrets.AZURE_CREDENTIALS != '' }}
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name:        ${{ secrets.AZURE_WEBAPP_NAME }}
-          images:          ${{ steps.image.outputs.image_latest }}
-
-      - name: Validate Azure deployment credentials
-        if: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE == '' && secrets.AZURE_CREDENTIALS == '' }}
-        run: |
-          echo "No Azure deployment credentials found."
-          echo "Set one of these repository secrets:"
-          echo " - AZURE_WEBAPP_PUBLISH_PROFILE"
-          echo " - AZURE_CREDENTIALS"
-          exit 1
 
       - name: Deployment complete
         run: echo "Container deployed to https://${{ secrets.AZURE_WEBAPP_NAME }}.azurewebsites.net"
