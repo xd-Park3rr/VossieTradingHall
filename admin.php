@@ -158,6 +158,38 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 </div>
 
+<!-- Change Role Modal -->
+<div id="change-role-modal"
+     class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between mb-5">
+            <h2 class="text-lg font-bold text-gray-900">Change Role</h2>
+            <button type="button" onclick="closeChangeRoleModal()"
+                    class="text-gray-400 hover:text-gray-600 transition-colors text-2xl leading-none">&times;</button>
+        </div>
+        <form method="POST" class="space-y-4">
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="update_user_role">
+            <input type="hidden" name="user_id" id="change-role-user-id" value="">
+            <div class="text-sm text-gray-600">
+                Change role for:
+                <span id="change-role-user-email" class="font-semibold text-gray-900"></span>
+            </div>
+            <div>
+                <label class="form-label" for="change-role-select">Role</label>
+                <select id="change-role-select" name="is_admin" class="form-input">
+                    <option value="0">Student</option>
+                    <option value="1">Admin</option>
+                </select>
+            </div>
+            <div class="flex gap-3 pt-1">
+                <button type="submit" class="btn btn-primary flex-1">Save role</button>
+                <button type="button" onclick="closeChangeRoleModal()" class="btn btn-outline">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="max-w-6xl mx-auto px-4 py-10">
     <h1 class="text-2xl font-bold text-gray-900 mb-6">Admin Panel</h1>
 
@@ -214,32 +246,30 @@ require_once __DIR__ . '/includes/header.php';
                             </td>
                             <td class="px-4 py-3 text-gray-400"><?= date('d M Y', strtotime($user['created_at'])) ?></td>
                             <td class="px-4 py-3">
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <form method="POST" class="inline-flex items-center gap-2">
-                                        <?= csrf_field() ?>
-                                        <input type="hidden" name="action" value="update_user_role">
-                                        <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
-                                        <select name="is_admin" class="form-input text-xs py-1.5 px-2 w-auto">
-                                            <option value="0" <?= empty($user['is_admin']) ? 'selected' : '' ?>>Student</option>
-                                            <option value="1" <?= !empty($user['is_admin']) ? 'selected' : '' ?>>Admin</option>
-                                        </select>
-                                        <button type="submit" class="btn btn-outline btn-sm">Save</button>
-                                    </form>
+                                <details class="relative inline-block">
+                                    <summary class="btn btn-outline btn-sm cursor-pointer list-none">Actions</summary>
+                                    <div class="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-20 p-1">
+                                        <button type="button"
+                                                class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
+                                                onclick='openChangeRoleModal(<?= (int)$user['id'] ?>, <?= json_encode((string)$user['email']) ?>, <?= !empty($user['is_admin']) ? 1 : 0 ?>)'>
+                                            Change role
+                                        </button>
 
-                                    <?php if ((int)$user['id'] !== current_user_id()): ?>
-                                        <form method="POST" class="inline">
-                                            <?= csrf_field() ?>
-                                            <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
-                                            <button name="action" value="delete_user"
-                                                    class="btn btn-danger btn-sm"
-                                                    data-confirm="Delete user <?= htmlspecialchars($user['email']) ?>? This cannot be undone.">
-                                                Delete
-                                            </button>
-                                        </form>
-                                    <?php else: ?>
-                                        <span class="text-xs text-gray-400">Current account</span>
-                                    <?php endif; ?>
-                                </div>
+                                        <?php if ((int)$user['id'] !== current_user_id()): ?>
+                                            <form method="POST" class="m-0">
+                                                <?= csrf_field() ?>
+                                                <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
+                                                <button name="action" value="delete_user"
+                                                        class="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded"
+                                                        data-confirm="Delete user <?= htmlspecialchars($user['email']) ?>? This cannot be undone.">
+                                                    Delete user
+                                                </button>
+                                            </form>
+                                        <?php else: ?>
+                                            <div class="px-3 py-2 text-xs text-gray-400">Current account</div>
+                                        <?php endif; ?>
+                                    </div>
+                                </details>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -334,11 +364,37 @@ function closeAddUserModal() {
     const m = document.getElementById('add-user-modal');
     if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
 }
+function openChangeRoleModal(userId, userEmail, currentRole) {
+    const modal = document.getElementById('change-role-modal');
+    const idInput = document.getElementById('change-role-user-id');
+    const emailText = document.getElementById('change-role-user-email');
+    const roleSelect = document.getElementById('change-role-select');
+
+    if (!modal || !idInput || !emailText || !roleSelect) {
+        return;
+    }
+
+    idInput.value = String(userId);
+    emailText.textContent = userEmail;
+    roleSelect.value = String(currentRole);
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+function closeChangeRoleModal() {
+    const modal = document.getElementById('change-role-modal');
+    if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+}
 document.getElementById('add-user-modal')?.addEventListener('click', function(e) {
     if (e.target === this) closeAddUserModal();
 });
+document.getElementById('change-role-modal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeChangeRoleModal();
+});
 document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeAddUserModal();
+    if (e.key === 'Escape') {
+        closeAddUserModal();
+        closeChangeRoleModal();
+    }
 });
 <?php if ($userForm['name'] !== '' || $userForm['email'] !== ''): ?>
 openAddUserModal();
