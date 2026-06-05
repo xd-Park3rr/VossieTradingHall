@@ -100,9 +100,58 @@ $pageTitle = 'Admin – ' . SITE_NAME;
 require_once __DIR__ . '/includes/header.php';
 ?>
 
+<!-- Add User Modal -->
+<div id="add-user-modal"
+     class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between mb-5">
+            <h2 class="text-lg font-bold text-gray-900">Add User</h2>
+            <button type="button" onclick="closeAddUserModal()"
+                    class="text-gray-400 hover:text-gray-600 transition-colors text-2xl leading-none">&times;</button>
+        </div>
+        <form method="POST" class="space-y-4">
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="create_user">
+            <div>
+                <label class="form-label" for="admin-name">Full name</label>
+                <input id="admin-name" type="text" name="name" required class="form-input"
+                       value="<?= htmlspecialchars($userForm['name']) ?>">
+            </div>
+            <div>
+                <label class="form-label" for="admin-email">Eduvos email</label>
+                <input id="admin-email" type="email" name="email" required class="form-input"
+                       placeholder="user@vossie.net"
+                       value="<?= htmlspecialchars($userForm['email']) ?>">
+            </div>
+            <div>
+                <label class="form-label" for="admin-phone">Phone / WhatsApp</label>
+                <input id="admin-phone" type="tel" name="phone" class="form-input"
+                       value="<?= htmlspecialchars($userForm['phone']) ?>">
+            </div>
+            <div>
+                <label class="form-label" for="admin-password">Temporary password</label>
+                <input id="admin-password" type="password" name="password" required class="form-input"
+                       placeholder="Minimum 8 characters">
+            </div>
+            <div>
+                <label class="form-label" for="admin-role">Role</label>
+                <select id="admin-role" name="is_admin" class="form-input">
+                    <option value="0" <?= $userForm['is_admin'] === '0' ? 'selected' : '' ?>>Student user</option>
+                    <option value="1" <?= $userForm['is_admin'] === '1' ? 'selected' : '' ?>>Admin</option>
+                </select>
+            </div>
+            <div class="flex gap-3 pt-1">
+                <button type="submit" class="btn btn-primary flex-1">Create user</button>
+                <button type="button" onclick="closeAddUserModal()" class="btn btn-outline">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="max-w-6xl mx-auto px-4 py-10">
     <h1 class="text-2xl font-bold text-gray-900 mb-6">Admin Panel</h1>
 
+    <!-- Stats -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <?php foreach ([
             ['Users',           $totalUsers,    '#2563eb'],
@@ -117,113 +166,71 @@ require_once __DIR__ . '/includes/header.php';
         <?php endforeach; ?>
     </div>
 
-    <div class="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] mb-8">
-        <div class="card overflow-hidden">
-            <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+    <!-- User Management -->
+    <div class="card overflow-hidden mb-8">
+        <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+            <div class="flex items-center gap-3">
                 <h2 class="font-semibold text-gray-700">User Management</h2>
                 <span class="text-sm text-gray-400"><?= count($users) ?> total</span>
             </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead class="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                            <th class="text-left px-4 py-3 font-semibold text-gray-600">Name</th>
-                            <th class="text-left px-4 py-3 font-semibold text-gray-600">Email</th>
-                            <th class="text-left px-4 py-3 font-semibold text-gray-600">Role</th>
-                            <th class="text-left px-4 py-3 font-semibold text-gray-600">Joined</th>
-                            <th class="text-left px-4 py-3 font-semibold text-gray-600">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($users as $user): ?>
-                            <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                                <td class="px-4 py-3">
-                                    <div class="font-medium text-gray-900"><?= htmlspecialchars($user['name']) ?></div>
-                                    <?php if (!empty($user['phone'])): ?>
-                                        <div class="text-xs text-gray-400"><?= htmlspecialchars($user['phone']) ?></div>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="px-4 py-3 text-gray-600"><?= htmlspecialchars($user['email']) ?></td>
-                                <td class="px-4 py-3">
-                                    <span class="badge <?= !empty($user['is_admin']) ? 'badge-pending' : 'badge-available' ?>">
-                                        <?= !empty($user['is_admin']) ? 'Admin' : 'Student' ?>
-                                    </span>
-                                </td>
-                                <td class="px-4 py-3 text-gray-400"><?= date('d M Y', strtotime($user['created_at'])) ?></td>
-                                <td class="px-4 py-3">
-                                    <?php if ((int)$user['id'] !== current_user_id()): ?>
-                                        <form method="POST" class="inline">
-                                            <?= csrf_field() ?>
-                                            <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
-                                            <button name="action" value="delete_user"
-                                                    class="btn btn-danger btn-sm"
-                                                    data-confirm="Delete user <?= htmlspecialchars($user['email']) ?>? This cannot be undone.">
-                                                Delete
-                                            </button>
-                                        </form>
-                                    <?php else: ?>
-                                        <span class="text-xs text-gray-400">Current account</span>
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                        <?php if (empty($users)): ?>
-                            <tr>
-                                <td colspan="5" class="px-4 py-8 text-center text-gray-400">No users yet.</td>
-                            </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
+            <button type="button" onclick="openAddUserModal()"
+                    class="btn btn-primary btn-sm">+ Add User</button>
         </div>
-
-        <div class="card p-6">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="font-semibold text-gray-700">Add User</h2>
-                <span class="text-xs text-gray-400">Admin-only</span>
-            </div>
-            <form method="POST" class="space-y-4">
-                <?= csrf_field() ?>
-                <input type="hidden" name="action" value="create_user">
-
-                <div>
-                    <label class="form-label" for="admin-name">Full name</label>
-                    <input id="admin-name" type="text" name="name" required class="form-input"
-                           value="<?= htmlspecialchars($userForm['name']) ?>">
-                </div>
-
-                <div>
-                    <label class="form-label" for="admin-email">Eduvos email</label>
-                    <input id="admin-email" type="email" name="email" required class="form-input"
-                           placeholder="user@vossie.net"
-                           value="<?= htmlspecialchars($userForm['email']) ?>">
-                </div>
-
-                <div>
-                    <label class="form-label" for="admin-phone">Phone / WhatsApp</label>
-                    <input id="admin-phone" type="tel" name="phone" class="form-input"
-                           value="<?= htmlspecialchars($userForm['phone']) ?>">
-                </div>
-
-                <div>
-                    <label class="form-label" for="admin-password">Temporary password</label>
-                    <input id="admin-password" type="password" name="password" required class="form-input"
-                           placeholder="Minimum 8 characters">
-                </div>
-
-                <div>
-                    <label class="form-label" for="admin-role">Role</label>
-                    <select id="admin-role" name="is_admin" class="form-input">
-                        <option value="0" <?= $userForm['is_admin'] === '0' ? 'selected' : '' ?>>Student user</option>
-                        <option value="1" <?= $userForm['is_admin'] === '1' ? 'selected' : '' ?>>Admin</option>
-                    </select>
-                </div>
-
-                <button type="submit" class="btn btn-primary w-full">Create user</button>
-            </form>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                        <th class="text-left px-4 py-3 font-semibold text-gray-600">Name</th>
+                        <th class="text-left px-4 py-3 font-semibold text-gray-600">Email</th>
+                        <th class="text-left px-4 py-3 font-semibold text-gray-600">Role</th>
+                        <th class="text-left px-4 py-3 font-semibold text-gray-600">Joined</th>
+                        <th class="text-left px-4 py-3 font-semibold text-gray-600">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($users as $user): ?>
+                        <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                            <td class="px-4 py-3">
+                                <div class="font-medium text-gray-900"><?= htmlspecialchars($user['name']) ?></div>
+                                <?php if (!empty($user['phone'])): ?>
+                                    <div class="text-xs text-gray-400"><?= htmlspecialchars($user['phone']) ?></div>
+                                <?php endif; ?>
+                            </td>
+                            <td class="px-4 py-3 text-gray-600"><?= htmlspecialchars($user['email']) ?></td>
+                            <td class="px-4 py-3">
+                                <span class="badge <?= !empty($user['is_admin']) ? 'badge-pending' : 'badge-available' ?>">
+                                    <?= !empty($user['is_admin']) ? 'Admin' : 'Student' ?>
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-gray-400"><?= date('d M Y', strtotime($user['created_at'])) ?></td>
+                            <td class="px-4 py-3">
+                                <?php if ((int)$user['id'] !== current_user_id()): ?>
+                                    <form method="POST" class="inline">
+                                        <?= csrf_field() ?>
+                                        <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
+                                        <button name="action" value="delete_user"
+                                                class="btn btn-danger btn-sm"
+                                                data-confirm="Delete user <?= htmlspecialchars($user['email']) ?>? This cannot be undone.">
+                                            Delete
+                                        </button>
+                                    </form>
+                                <?php else: ?>
+                                    <span class="text-xs text-gray-400">Current account</span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    <?php if (empty($users)): ?>
+                        <tr>
+                            <td colspan="5" class="px-4 py-8 text-center text-gray-400">No users yet.</td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
         </div>
     </div>
 
+    <!-- Listings -->
     <div class="card overflow-hidden">
         <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
             <h2 class="font-semibold text-gray-700">All Listings</h2>
@@ -294,5 +301,25 @@ require_once __DIR__ . '/includes/header.php';
         </table>
     </div>
 </div>
+
+<script>
+function openAddUserModal() {
+    const m = document.getElementById('add-user-modal');
+    if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+}
+function closeAddUserModal() {
+    const m = document.getElementById('add-user-modal');
+    if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+}
+document.getElementById('add-user-modal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeAddUserModal();
+});
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeAddUserModal();
+});
+<?php if ($userForm['name'] !== '' || $userForm['email'] !== ''): ?>
+openAddUserModal();
+<?php endif; ?>
+</script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
