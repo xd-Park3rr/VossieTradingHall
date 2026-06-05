@@ -3,6 +3,14 @@ require_once __DIR__ . '/config.php';
 
 $driver = strtolower(trim((string)(getenv('DB_DRIVER') ?: 'mysql')));
 
+function db_fail(PDOException $e): void {
+    http_response_code(500);
+    if ((string)(getenv('DB_DEBUG_DETAILS') ?: '0') === '1') {
+        die('Database connection failed: ' . $e->getMessage());
+    }
+    die('Database connection failed.');
+}
+
 /**
  * Build a PDO connection to SQLite and bootstrap schema if needed.
  */
@@ -43,8 +51,7 @@ if ($driver === 'sqlite') {
         $pdo = connect_sqlite();
         return;
     } catch (PDOException $e) {
-        http_response_code(500);
-        die('Database connection failed.');
+        db_fail($e);
     }
 }
 
@@ -70,11 +77,9 @@ try {
         try {
             $pdo = connect_sqlite();
         } catch (PDOException $inner) {
-            http_response_code(500);
-            die('Database connection failed.');
+            db_fail($inner);
         }
     } else {
-        http_response_code(500);
-        die('Database connection failed.');
+        db_fail($e);
     }
 }
