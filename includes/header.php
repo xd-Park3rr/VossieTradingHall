@@ -46,7 +46,7 @@ $_currentUser = current_user();
 
         <!-- Logo -->
         <a href="/index.php" class="text-white font-bold text-xl tracking-tight shrink-0 flex items-center gap-1">
-            <span class="text-brand-yellow">Eduvos</span><span class="font-light opacity-90">Market</span>
+            <span class="text-brand-yellow">Vossie</span><span class="font-light opacity-90">Trading Hall</span>
         </a>
 
         <!-- Desktop nav -->

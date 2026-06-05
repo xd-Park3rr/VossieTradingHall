@@ -3,7 +3,7 @@ require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/helpers.php';
 
-$pageTitle = 'Eduvos Marketplace – Buy &amp; Sell';
+$pageTitle = 'Vossie Trading Hall – Buy &amp; Sell';
 
 // --- Search / filter params ---
 $q         = trim($_GET['q']        ?? '');
@@ -65,8 +65,8 @@ require_once __DIR__ . '/includes/header.php';
 <!-- Hero -->
 <section class="hero-search">
     <div class="max-w-2xl mx-auto text-center">
-        <h1 class="text-white text-3xl font-bold mb-1 tracking-tight">Eduvos Marketplace</h1>
-        <p class="text-blue-200 text-sm mb-5">Buy &amp; sell with your fellow Eduvos students</p>
+        <h1 class="text-white text-3xl font-bold mb-1 tracking-tight">Vossie Trading Hall</h1>
+        <p class="text-blue-200 text-sm mb-5">Buy &amp; sell with your fellow Vossie students</p>
         <form method="GET" action="/index.php" class="flex gap-2">
             <input type="text" name="q"
                    value="<?= htmlspecialchars($q) ?>"
