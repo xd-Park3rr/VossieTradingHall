@@ -72,6 +72,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->prepare("DELETE FROM users WHERE id = :id")->execute([':id' => $user_id]);
             $_SESSION['flash'] = ['type' => 'success', 'msg' => "User #$user_id deleted."];
         }
+    } elseif ($action === 'update_user_role' && $user_id) {
+        $newRole = (($_POST['is_admin'] ?? '0') === '1') ? 1 : 0;
+
+        if ($user_id === current_user_id() && $newRole === 0) {
+            $_SESSION['flash'] = ['type' => 'error', 'msg' => 'You cannot remove admin role from your own account.'];
+        } else {
+            $pdo->prepare("UPDATE users SET is_admin = :is_admin WHERE id = :id")
+                ->execute([':is_admin' => $newRole, ':id' => $user_id]);
+            $_SESSION['flash'] = ['type' => 'success', 'msg' => 'User role updated.'];
+        }
     }
 
     header('Location: /admin.php');
@@ -204,19 +214,32 @@ require_once __DIR__ . '/includes/header.php';
                             </td>
                             <td class="px-4 py-3 text-gray-400"><?= date('d M Y', strtotime($user['created_at'])) ?></td>
                             <td class="px-4 py-3">
-                                <?php if ((int)$user['id'] !== current_user_id()): ?>
-                                    <form method="POST" class="inline">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <form method="POST" class="inline-flex items-center gap-2">
                                         <?= csrf_field() ?>
+                                        <input type="hidden" name="action" value="update_user_role">
                                         <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
-                                        <button name="action" value="delete_user"
-                                                class="btn btn-danger btn-sm"
-                                                data-confirm="Delete user <?= htmlspecialchars($user['email']) ?>? This cannot be undone.">
-                                            Delete
-                                        </button>
+                                        <select name="is_admin" class="form-input text-xs py-1.5 px-2 w-auto">
+                                            <option value="0" <?= empty($user['is_admin']) ? 'selected' : '' ?>>Student</option>
+                                            <option value="1" <?= !empty($user['is_admin']) ? 'selected' : '' ?>>Admin</option>
+                                        </select>
+                                        <button type="submit" class="btn btn-outline btn-sm">Save</button>
                                     </form>
-                                <?php else: ?>
-                                    <span class="text-xs text-gray-400">Current account</span>
-                                <?php endif; ?>
+
+                                    <?php if ((int)$user['id'] !== current_user_id()): ?>
+                                        <form method="POST" class="inline">
+                                            <?= csrf_field() ?>
+                                            <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
+                                            <button name="action" value="delete_user"
+                                                    class="btn btn-danger btn-sm"
+                                                    data-confirm="Delete user <?= htmlspecialchars($user['email']) ?>? This cannot be undone.">
+                                                Delete
+                                            </button>
+                                        </form>
+                                    <?php else: ?>
+                                        <span class="text-xs text-gray-400">Current account</span>
+                                    <?php endif; ?>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
