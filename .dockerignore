@@ -1,0 +1,8 @@
+.git
+.github
+.gitignore
+deploy.zip
+uploads/*
+infra/*
+*.md
+node_modules

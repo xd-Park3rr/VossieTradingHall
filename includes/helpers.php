@@ -2,6 +2,67 @@
 require_once __DIR__ . '/config.php';
 
 /**
+ * Upload a file to Azure Blob Storage using a container-level SAS URL.
+ * Returns the public blob URL on success, or null when blob storage is not configured.
+ */
+function upload_to_azure_blob(string $tmpPath, string $filename, string $mime): ?string {
+    $sasContainerUrl = trim((string)(getenv('AZURE_BLOB_UPLOAD_SAS_URL') ?: ''));
+    if ($sasContainerUrl === '') {
+        return null;
+    }
+
+    $parts = parse_url($sasContainerUrl);
+    if (!$parts || empty($parts['scheme']) || empty($parts['host']) || empty($parts['path']) || empty($parts['query'])) {
+        throw new RuntimeException('Invalid AZURE_BLOB_UPLOAD_SAS_URL format.');
+    }
+
+    $basePath = rtrim($parts['path'], '/');
+    $blobPath = $basePath . '/' . rawurlencode($filename);
+    $uploadUrl = $parts['scheme'] . '://' . $parts['host'] . $blobPath . '?' . $parts['query'];
+
+    $blobPublicBase = rtrim((string)(getenv('AZURE_BLOB_PUBLIC_BASE_URL') ?: ($parts['scheme'] . '://' . $parts['host'] . $basePath)), '/');
+    $blobPublicUrl = $blobPublicBase . '/' . rawurlencode($filename);
+
+    $fh = fopen($tmpPath, 'rb');
+    if (!$fh) {
+        throw new RuntimeException('Could not read upload temp file.');
+    }
+
+    $size = filesize($tmpPath);
+    if ($size === false) {
+        fclose($fh);
+        throw new RuntimeException('Could not determine upload file size.');
+    }
+
+    $ch = curl_init($uploadUrl);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_UPLOAD => true,
+        CURLOPT_INFILE => $fh,
+        CURLOPT_INFILESIZE => $size,
+        CURLOPT_CUSTOMREQUEST => 'PUT',
+        CURLOPT_HTTPHEADER => [
+            'x-ms-blob-type: BlockBlob',
+            'x-ms-version: 2023-11-03',
+            'Content-Type: ' . $mime,
+            'Content-Length: ' . $size,
+        ],
+    ]);
+
+    $resp = curl_exec($ch);
+    $httpCode = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    $err = curl_error($ch);
+    curl_close($ch);
+    fclose($fh);
+
+    if ($httpCode < 200 || $httpCode >= 300) {
+        throw new RuntimeException('Azure Blob upload failed. HTTP ' . $httpCode . ($err ? ' - ' . $err : ''));
+    }
+
+    return $blobPublicUrl;
+}
+
+/**
  * Upload a listing image.
  * Returns the stored filename on success, or throws on failure.
  */
@@ -30,6 +91,13 @@ function upload_listing_image(array $file): string {
     };
 
     $filename = bin2hex(random_bytes(16)) . '.' . $ext;
+
+    // Prefer Azure Blob when configured; fallback to local filesystem.
+    $blobUrl = upload_to_azure_blob($file['tmp_name'], $filename, $mime);
+    if ($blobUrl !== null) {
+        return $blobUrl;
+    }
+
     $dest     = UPLOAD_DIR . $filename;
 
     if (!is_dir(UPLOAD_DIR)) {
