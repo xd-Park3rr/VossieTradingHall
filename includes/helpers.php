@@ -101,7 +101,7 @@ function upload_listing_image(array $file): string {
     $dest     = UPLOAD_DIR . $filename;
 
     if (!is_dir(UPLOAD_DIR)) {
-        mkdir(UPLOAD_DIR, 0755, true);
+        @mkdir(UPLOAD_DIR, 0775, true);
     }
 
     if (!move_uploaded_file($file['tmp_name'], $dest)) {
