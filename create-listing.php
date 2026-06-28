@@ -17,6 +17,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $fields['price']       = is_numeric($_POST['price'] ?? '') ? (float)$_POST['price'] : null;
     $fields['category']    = trim($_POST['category']    ?? '');
     $fields['phone']       = trim($_POST['phone']       ?? '');
+    $fields['isbn']        = trim($_POST['isbn']        ?? '');
+    $fields['author']      = trim($_POST['author']      ?? '');
+    $fields['edition']     = trim($_POST['edition']     ?? '');
+    $fields['is_business'] = isset($_POST['is_business']) ? 1 : 0;
 
     // Validate
     if ($fields['title'] === '') {
@@ -43,20 +47,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $stmt = $pdo->prepare("
                 INSERT INTO listings
-                    (user_id, title, description, price, price_type, category, image, phone, qr_token)
+                    (user_id, title, description, price, price_type, category, image, phone, isbn, author, edition, is_business, qr_token)
                 VALUES
-                    (:user_id, :title, :desc, :price, :price_type, :category, :image, :phone, :qr_token)
+                    (:user_id, :title, :desc, :price, :price_type, :category, :image, :phone, :isbn, :author, :edition, :is_business, :qr_token)
             ");
             $stmt->execute([
-                ':user_id'    => current_user_id(),
-                ':title'      => $fields['title'],
-                ':desc'       => $fields['description'],
-                ':price'      => $fields['price_type'] === 'wanted' ? null : $fields['price'],
-                ':price_type' => $fields['price_type'],
-                ':category'   => $fields['category'],
-                ':image'      => $imageName,
-                ':phone'      => $fields['phone'],
-                ':qr_token'   => $qrToken,
+                ':user_id'     => current_user_id(),
+                ':title'       => $fields['title'],
+                ':desc'        => $fields['description'],
+                ':price'       => $fields['price_type'] === 'wanted' ? null : $fields['price'],
+                ':price_type'  => $fields['price_type'],
+                ':category'    => $fields['category'],
+                ':image'       => $imageName,
+                ':phone'       => $fields['phone'],
+                ':isbn'        => $fields['isbn']    !== '' ? $fields['isbn']    : null,
+                ':author'      => $fields['author']  !== '' ? $fields['author']  : null,
+                ':edition'     => $fields['edition'] !== '' ? $fields['edition'] : null,
+                ':is_business' => $fields['is_business'],
+                ':qr_token'    => $qrToken,
             ]);
 
             $_SESSION['flash'] = ['type' => 'success', 'msg' => 'Listing posted!'];
@@ -112,6 +120,30 @@ require_once __DIR__ . '/includes/header.php';
                         </option>
                     <?php endforeach; ?>
                 </select>
+            </div>
+
+            <!-- Book details (optional — powers the Books marketplace) -->
+            <div class="form-group">
+                <label class="form-label">Book details <span class="text-gray-400 font-normal">(optional — for textbooks)</span></label>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <input type="text" name="isbn" maxlength="20" placeholder="ISBN"
+                           class="form-input" value="<?= htmlspecialchars($fields['isbn'] ?? '') ?>">
+                    <input type="text" name="author" maxlength="150" placeholder="Author"
+                           class="form-input" value="<?= htmlspecialchars($fields['author'] ?? '') ?>">
+                    <input type="text" name="edition" maxlength="60" placeholder="Edition"
+                           class="form-input" value="<?= htmlspecialchars($fields['edition'] ?? '') ?>">
+                </div>
+                <p class="text-xs text-gray-400 mt-1">Fill these in for textbooks so buyers can search by ISBN, title or author.</p>
+            </div>
+
+            <!-- Student business flag -->
+            <div class="form-group">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" name="is_business" value="1"
+                           <?= !empty($fields['is_business']) ? 'checked' : '' ?>>
+                    <span class="text-sm font-medium">List this as a student business / service</span>
+                </label>
+                <p class="text-xs text-gray-400 mt-1">Featured in the Student Businesses section on the home page.</p>
             </div>
 
             <!-- Price type toggle -->

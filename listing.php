@@ -103,6 +103,11 @@ require_once __DIR__ . '/includes/header.php';
                 <span class="badge <?= $statusClasses[$listing['status']] ?? '' ?> mb-2">
                     <?= htmlspecialchars($listing['status']) ?>
                 </span>
+                <?php if (!empty($listing['is_business'])): ?>
+                    <span class="inline-block bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded-full mb-2 ml-1">
+                        🏪 Student business
+                    </span>
+                <?php endif; ?>
                 <h1 class="text-2xl font-bold text-gray-900"><?= htmlspecialchars($listing['title']) ?></h1>
                 <p class="text-sm text-gray-500 mt-1"><?= htmlspecialchars($listing['category']) ?></p>
             </div>
@@ -126,6 +131,24 @@ require_once __DIR__ . '/includes/header.php';
                     <p class="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
                         <?= htmlspecialchars($listing['description']) ?>
                     </p>
+                </div>
+            <?php endif; ?>
+
+            <!-- Book details -->
+            <?php if (!empty($listing['author']) || !empty($listing['edition']) || !empty($listing['isbn'])): ?>
+                <div>
+                    <h2 class="font-semibold text-sm text-gray-700 mb-1">Book details</h2>
+                    <div class="text-sm text-gray-600 space-y-0.5">
+                        <?php if (!empty($listing['author'])): ?>
+                            <div><span class="text-gray-400">Author:</span> <?= htmlspecialchars($listing['author']) ?></div>
+                        <?php endif; ?>
+                        <?php if (!empty($listing['edition'])): ?>
+                            <div><span class="text-gray-400">Edition:</span> <?= htmlspecialchars($listing['edition']) ?></div>
+                        <?php endif; ?>
+                        <?php if (!empty($listing['isbn'])): ?>
+                            <div><span class="text-gray-400">ISBN:</span> <?= htmlspecialchars($listing['isbn']) ?></div>
+                        <?php endif; ?>
+                    </div>
                 </div>
             <?php endif; ?>
 

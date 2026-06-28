@@ -23,10 +23,24 @@ CREATE TABLE IF NOT EXISTS listings (
     category    VARCHAR(60) NOT NULL,
     image       VARCHAR(255),
     phone       VARCHAR(20),
+    isbn        VARCHAR(20),
+    author      VARCHAR(150),
+    edition     VARCHAR(60),
+    is_business TINYINT(1) NOT NULL DEFAULT 0,
     status      ENUM('available','pending','completed') NOT NULL DEFAULT 'available',
     qr_token    CHAR(64) NOT NULL UNIQUE,
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS promotions (
+    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    title       VARCHAR(150) NOT NULL,
+    description TEXT,
+    image       VARCHAR(255),
+    link_url    VARCHAR(255),
+    active      TINYINT(1) NOT NULL DEFAULT 1,
+    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS transactions (

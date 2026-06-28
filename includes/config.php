@@ -6,6 +6,9 @@ define('SITE_NAME',      'Vossie Trading Hall');
 // Override BASE_URL via environment variable in production (Azure App Service config)
 define('BASE_URL', rtrim(getenv('BASE_URL') ?: 'http://localhost:8080', '/'));
 
+// Listings in this category power the dedicated Books marketplace (Goal 3).
+define('BOOKS_CATEGORY', 'Textbooks & Study Material');
+
 define('CATEGORIES', [
     'Textbooks & Study Material',
     'Electronics & Gadgets',

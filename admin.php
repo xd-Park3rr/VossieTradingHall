@@ -82,6 +82,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ->execute([':is_admin' => $newRole, ':id' => $user_id]);
             $_SESSION['flash'] = ['type' => 'success', 'msg' => 'User role updated.'];
         }
+    } elseif ($action === 'create_promo') {
+        $title = trim($_POST['title'] ?? '');
+        $desc  = trim($_POST['description'] ?? '');
+        $image = trim($_POST['image'] ?? '');
+        $link  = trim($_POST['link_url'] ?? '');
+
+        // Only allow absolute http(s) URLs or site-relative paths.
+        $safeUrl = static fn(string $url): string =>
+            ($url !== '' && preg_match('#^(https?://|/)#i', $url)) ? $url : '';
+        $image = $safeUrl($image);
+        $link  = $safeUrl($link);
+
+        if ($title === '') {
+            $_SESSION['flash'] = ['type' => 'error', 'msg' => 'Promotion title is required.'];
+        } else {
+            $pdo->prepare("
+                INSERT INTO promotions (title, description, image, link_url, active)
+                VALUES (:title, :description, :image, :link_url, 1)
+            ")->execute([
+                ':title'       => $title,
+                ':description' => $desc  !== '' ? $desc  : null,
+                ':image'       => $image !== '' ? $image : null,
+                ':link_url'    => $link  !== '' ? $link  : null,
+            ]);
+            $_SESSION['flash'] = ['type' => 'success', 'msg' => 'Promotion created.'];
+        }
+    } elseif ($action === 'toggle_promo') {
+        $promo_id = filter_input(INPUT_POST, 'promo_id', FILTER_VALIDATE_INT);
+        if ($promo_id) {
+            $pdo->prepare("UPDATE promotions SET active = CASE WHEN active = 1 THEN 0 ELSE 1 END WHERE id = :id")
+                ->execute([':id' => $promo_id]);
+            $_SESSION['flash'] = ['type' => 'success', 'msg' => 'Promotion updated.'];
+        }
+    } elseif ($action === 'delete_promo') {
+        $promo_id = filter_input(INPUT_POST, 'promo_id', FILTER_VALIDATE_INT);
+        if ($promo_id) {
+            $pdo->prepare("DELETE FROM promotions WHERE id = :id")->execute([':id' => $promo_id]);
+            $_SESSION['flash'] = ['type' => 'success', 'msg' => "Promotion #$promo_id deleted."];
+        }
     }
 
     header('Location: /admin.php');
@@ -106,9 +145,49 @@ $totalListings  = (int)$pdo->query("SELECT COUNT(*) FROM listings")->fetchColumn
 $totalTx        = (int)$pdo->query("SELECT COUNT(*) FROM transactions")->fetchColumn();
 $activeListings = (int)$pdo->query("SELECT COUNT(*) FROM listings WHERE status = 'available'")->fetchColumn();
 
+$promotions = $pdo->query("SELECT * FROM promotions ORDER BY created_at DESC")->fetchAll();
+
 $pageTitle = 'Admin – ' . SITE_NAME;
 require_once __DIR__ . '/includes/header.php';
 ?>
+
+<!-- Add Promotion Modal -->
+<div id="add-promo-modal"
+     class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between mb-5">
+            <h2 class="text-lg font-bold text-gray-900">Add Promotion</h2>
+            <button type="button" onclick="closeAddPromoModal()"
+                    class="text-gray-400 hover:text-gray-600 transition-colors text-2xl leading-none">&times;</button>
+        </div>
+        <form method="POST" class="space-y-4">
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="create_promo">
+            <div>
+                <label class="form-label" for="promo-title">Title</label>
+                <input id="promo-title" type="text" name="title" required maxlength="150" class="form-input"
+                       placeholder="e.g. End-of-term textbook sale">
+            </div>
+            <div>
+                <label class="form-label" for="promo-desc">Description</label>
+                <textarea id="promo-desc" name="description" rows="2" class="form-input resize-none"
+                          placeholder="Short detail shown under the title"></textarea>
+            </div>
+            <div>
+                <label class="form-label" for="promo-image">Image URL <span class="text-gray-400 font-normal">(optional)</span></label>
+                <input id="promo-image" type="text" name="image" class="form-input" placeholder="https://…">
+            </div>
+            <div>
+                <label class="form-label" for="promo-link">Link URL <span class="text-gray-400 font-normal">(optional)</span></label>
+                <input id="promo-link" type="text" name="link_url" class="form-input" placeholder="https://… or /books.php">
+            </div>
+            <div class="flex gap-3 pt-1">
+                <button type="submit" class="btn btn-primary flex-1">Create promotion</button>
+                <button type="button" onclick="closeAddPromoModal()" class="btn btn-outline">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <!-- Add User Modal -->
 <div id="add-user-modal"
@@ -206,6 +285,58 @@ require_once __DIR__ . '/includes/header.php';
                 <p class="stat-label"><?= $label ?></p>
             </div>
         <?php endforeach; ?>
+    </div>
+
+    <!-- Promotions / Sales -->
+    <div class="card overflow-hidden mb-8">
+        <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <h2 class="font-semibold text-gray-700">Promotions &amp; Sales</h2>
+                <span class="text-sm text-gray-400"><?= count($promotions) ?> total</span>
+            </div>
+            <button type="button" onclick="openAddPromoModal()" class="btn btn-primary btn-sm">+ Add Promotion</button>
+        </div>
+        <div class="p-4">
+            <?php if (empty($promotions)): ?>
+                <p class="text-sm text-gray-400 py-4 text-center">No promotions yet. Add one to feature it on the home page.</p>
+            <?php else: ?>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <?php foreach ($promotions as $promo): ?>
+                        <div class="border border-gray-200 rounded-xl overflow-hidden">
+                            <?php if (!empty($promo['image'])): ?>
+                                <img src="<?= htmlspecialchars($promo['image']) ?>" alt="" class="w-full h-28 object-cover">
+                            <?php endif; ?>
+                            <div class="p-3">
+                                <div class="flex items-start justify-between gap-2">
+                                    <h3 class="font-semibold text-sm text-gray-900"><?= htmlspecialchars($promo['title']) ?></h3>
+                                    <span class="badge <?= !empty($promo['active']) ? 'badge-available' : 'badge-pending' ?>">
+                                        <?= !empty($promo['active']) ? 'Active' : 'Hidden' ?>
+                                    </span>
+                                </div>
+                                <?php if (!empty($promo['description'])): ?>
+                                    <p class="text-xs text-gray-500 mt-1"><?= htmlspecialchars($promo['description']) ?></p>
+                                <?php endif; ?>
+                                <div class="flex gap-2 mt-3">
+                                    <form method="POST" class="m-0">
+                                        <?= csrf_field() ?>
+                                        <input type="hidden" name="promo_id" value="<?= $promo['id'] ?>">
+                                        <button name="action" value="toggle_promo" class="btn btn-outline btn-sm">
+                                            <?= !empty($promo['active']) ? 'Hide' : 'Show' ?>
+                                        </button>
+                                    </form>
+                                    <form method="POST" class="m-0">
+                                        <?= csrf_field() ?>
+                                        <input type="hidden" name="promo_id" value="<?= $promo['id'] ?>">
+                                        <button name="action" value="delete_promo" class="btn btn-danger btn-sm"
+                                                data-confirm="Delete this promotion?">Delete</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
 
     <!-- User Management -->
@@ -364,6 +495,14 @@ function closeAddUserModal() {
     const m = document.getElementById('add-user-modal');
     if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
 }
+function openAddPromoModal() {
+    const m = document.getElementById('add-promo-modal');
+    if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+}
+function closeAddPromoModal() {
+    const m = document.getElementById('add-promo-modal');
+    if (m) { m.classList.add('hidden'); m.classList.remove('flex'); }
+}
 function openChangeRoleModal(userId, userEmail, currentRole) {
     const modal = document.getElementById('change-role-modal');
     const idInput = document.getElementById('change-role-user-id');
@@ -390,10 +529,14 @@ document.getElementById('add-user-modal')?.addEventListener('click', function(e)
 document.getElementById('change-role-modal')?.addEventListener('click', function(e) {
     if (e.target === this) closeChangeRoleModal();
 });
+document.getElementById('add-promo-modal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeAddPromoModal();
+});
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         closeAddUserModal();
         closeChangeRoleModal();
+        closeAddPromoModal();
     }
 });
 <?php if ($userForm['name'] !== '' || $userForm['email'] !== ''): ?>

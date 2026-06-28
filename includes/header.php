@@ -55,6 +55,10 @@ $_currentUser = current_user();
                class="nav-link <?= (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) === '/index.php' || parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) === '/') ? 'nav-link-active' : '' ?>">
                Browse
             </a>
+            <a href="/books.php"
+               class="nav-link <?= parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) === '/books.php' ? 'nav-link-active' : '' ?>">
+               Books
+            </a>
             <?php if ($_currentUser): ?>
                 <a href="/create-listing.php"
                    class="ml-1 bg-brand-yellow text-gray-900 font-semibold px-4 py-1.5 rounded-lg
@@ -119,6 +123,7 @@ $_currentUser = current_user();
     <!-- Mobile menu -->
     <div id="mobile-menu" class="hidden md:hidden bg-blue-900 border-t border-blue-800 px-4 py-3 space-y-1">
         <a href="/index.php" class="mobile-nav-link">Browse Listings</a>
+        <a href="/books.php" class="mobile-nav-link">Books</a>
         <?php if ($_currentUser): ?>
             <a href="/scan-transaction.php" class="mobile-nav-link">Scan QR</a>
             <a href="/my-listings.php" class="mobile-nav-link">My Listings</a>

@@ -11,6 +11,7 @@ $category  = trim($_GET['category'] ?? '');
 $min_price = is_numeric($_GET['min_price'] ?? '') ? (float)$_GET['min_price'] : null;
 $max_price = is_numeric($_GET['max_price'] ?? '') ? (float)$_GET['max_price'] : null;
 $sort      = in_array($_GET['sort'] ?? '', ['newest', 'price_asc', 'price_desc']) ? $_GET['sort'] : 'newest';
+$type      = trim($_GET['type'] ?? '');
 
 // Build query
 $params = [];
@@ -33,6 +34,9 @@ if ($max_price !== null) {
     $where[]               = "(l.price <= :max_price OR l.price_type = 'wanted')";
     $params[':max_price']  = $max_price;
 }
+if ($type === 'business') {
+    $where[] = "l.is_business = 1";
+}
 
 $orderBy = match($sort) {
     'price_asc'  => 'l.price ASC',
@@ -51,6 +55,27 @@ $sql = "SELECT l.*, u.name AS seller_name
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $listings = $stmt->fetchAll();
+
+// Landing-page extras: only shown on the plain home view (no search/filter active).
+$isLanding  = ($q === '' && $category === '' && $min_price === null && $max_price === null && $type === '');
+$promotions = [];
+$businesses = [];
+if ($isLanding) {
+    $promotions = $pdo->query("
+        SELECT * FROM promotions WHERE active = 1 ORDER BY created_at DESC LIMIT 6
+    ")->fetchAll();
+
+    $bizStmt = $pdo->prepare("
+        SELECT l.*, u.name AS seller_name
+        FROM listings l
+        JOIN users u ON u.id = l.user_id
+        WHERE l.is_business = 1 AND l.status = 'available'
+        ORDER BY l.created_at DESC
+        LIMIT 4
+    ");
+    $bizStmt->execute();
+    $businesses = $bizStmt->fetchAll();
+}
 
 // Total available count per category (for pills)
 $catCounts = $pdo->query("
@@ -103,6 +128,92 @@ require_once __DIR__ . '/includes/header.php';
         </div>
     </div>
 </div>
+
+<?php if ($isLanding): ?>
+<div class="max-w-7xl mx-auto px-4 pt-6 space-y-8">
+
+    <!-- Books marketplace entry point -->
+    <a href="/books.php"
+       class="block card card-hover p-5 border border-blue-100"
+       style="background:linear-gradient(90deg,#eef2ff,#eff6ff)">
+        <div class="flex items-center gap-4">
+            <span class="text-4xl">📚</span>
+            <div>
+                <h2 class="text-lg font-bold text-gray-900">Books Marketplace</h2>
+                <p class="text-sm text-gray-500">Search second-hand textbooks by ISBN, title or author.</p>
+            </div>
+            <span class="ml-auto text-blue-600 font-medium hidden sm:inline">Search books →</span>
+        </div>
+    </a>
+
+    <?php if (!empty($promotions)): ?>
+        <!-- Admin-managed promotional sales -->
+        <section>
+            <h2 class="text-lg font-bold text-gray-900 mb-3">🔥 Campus Deals &amp; Sales</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <?php foreach ($promotions as $promo):
+                    $hasLink = !empty($promo['link_url']);
+                ?>
+                    <div class="card card-hover overflow-hidden">
+                        <?php if (!empty($promo['image'])): ?>
+                            <img src="<?= htmlspecialchars($promo['image']) ?>" alt=""
+                                 class="w-full h-32 object-cover" loading="lazy">
+                        <?php else: ?>
+                            <div class="w-full h-32 flex items-center justify-center text-white text-4xl"
+                                 style="background:linear-gradient(90deg,#2563eb,#4f46e5)">🏷️</div>
+                        <?php endif; ?>
+                        <div class="p-4">
+                            <h3 class="font-semibold text-gray-900">
+                                <?php if ($hasLink): ?>
+                                    <a href="<?= htmlspecialchars($promo['link_url']) ?>" class="hover:text-blue-600"><?= htmlspecialchars($promo['title']) ?></a>
+                                <?php else: ?>
+                                    <?= htmlspecialchars($promo['title']) ?>
+                                <?php endif; ?>
+                            </h3>
+                            <?php if (!empty($promo['description'])): ?>
+                                <p class="text-sm text-gray-500 mt-1"><?= htmlspecialchars($promo['description']) ?></p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </section>
+    <?php endif; ?>
+
+    <?php if (!empty($businesses)): ?>
+        <!-- Student businesses -->
+        <section>
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-lg font-bold text-gray-900">🏪 Student Businesses</h2>
+                <a href="/index.php?type=business" class="text-sm font-medium text-blue-600 hover:underline">View all →</a>
+            </div>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <?php foreach ($businesses as $item):
+                    $imgSrc = listing_image_src($item['image']);
+                ?>
+                    <a href="/listing.php?id=<?= $item['id'] ?>" class="listing-card card card-hover">
+                        <div class="relative">
+                            <?php if ($imgSrc): ?>
+                                <img src="<?= htmlspecialchars($imgSrc) ?>" alt="<?= htmlspecialchars($item['title']) ?>"
+                                     class="listing-card-img" loading="lazy">
+                            <?php else: ?>
+                                <div class="listing-card-no-img"><?= category_icon($item['category']) ?></div>
+                            <?php endif; ?>
+                        </div>
+                        <div class="p-3">
+                            <h3 class="font-semibold text-sm text-gray-900 leading-snug mb-1 truncate">
+                                <?= htmlspecialchars($item['title']) ?>
+                            </h3>
+                            <p class="text-xs text-gray-400 truncate"><?= htmlspecialchars($item['seller_name']) ?></p>
+                        </div>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </section>
+    <?php endif; ?>
+
+</div>
+<?php endif; ?>
 
 <div class="max-w-7xl mx-auto px-4 py-6 flex gap-6">
 
@@ -174,6 +285,10 @@ require_once __DIR__ . '/includes/header.php';
 
     <!-- Main content -->
     <div class="flex-1 min-w-0">
+
+        <?php if ($type === 'business'): ?>
+            <h1 class="text-xl font-bold text-gray-900 mb-4">🏪 Student Businesses</h1>
+        <?php endif; ?>
 
         <!-- Results header -->
         <div class="flex items-center justify-between mb-4 flex-wrap gap-2">

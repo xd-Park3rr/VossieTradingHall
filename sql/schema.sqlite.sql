@@ -20,10 +20,24 @@ CREATE TABLE IF NOT EXISTS listings (
     category TEXT NOT NULL,
     image TEXT,
     phone TEXT,
+    isbn TEXT,
+    author TEXT,
+    edition TEXT,
+    is_business INTEGER NOT NULL DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'available' CHECK (status IN ('available','pending','completed')),
     qr_token TEXT NOT NULL UNIQUE,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS promotions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    description TEXT,
+    image TEXT,
+    link_url TEXT,
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS transactions (
