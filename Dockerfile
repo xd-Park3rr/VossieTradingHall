@@ -18,4 +18,10 @@ RUN mkdir -p /var/www/html/uploads /var/www/html/storage \
     && chown -R www-data:www-data /var/www/html/uploads /var/www/html/storage \
     && chmod 755 /var/www/html/uploads /var/www/html/storage
 
+# Persist uploaded images on the App Service /home mount (see docker-entrypoint.sh).
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh \
+    && chmod +x /usr/local/bin/docker-entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+
 EXPOSE 80
