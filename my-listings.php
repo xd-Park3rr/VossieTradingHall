@@ -57,8 +57,8 @@ require_once __DIR__ . '/includes/header.php';
             <a href="/create-listing.php" class="btn btn-primary mt-5">Post your first listing</a>
         </div>
     <?php else: ?>
-        <div class="card overflow-hidden">
-            <table class="w-full text-sm">
+        <div class="card overflow-x-auto">
+            <table class="w-full text-sm min-w-[640px]">
                 <thead class="bg-gray-50 border-b border-gray-200">
                     <tr>
                         <th class="text-left px-4 py-3 font-semibold text-gray-600">Listing</th>
