@@ -118,6 +118,27 @@ function connect_sqlite(): PDO {
     return $pdo;
 }
 
+/**
+ * Ensure base tables exist on MySQL (idempotent). schema.sql uses
+ * CREATE TABLE IF NOT EXISTS, so this is safe to run on every connection and
+ * lets the app self-heal when pointed at a fresh/empty database.
+ */
+function apply_mysql_schema(PDO $pdo): void {
+    static $done = false;
+    if ($done) {
+        return;
+    }
+    $done = true;
+
+    $schemaFile = __DIR__ . '/../sql/schema.sql';
+    if (is_file($schemaFile)) {
+        $schemaSql = file_get_contents($schemaFile);
+        if ($schemaSql !== false && trim($schemaSql) !== '') {
+            $pdo->exec($schemaSql);
+        }
+    }
+}
+
 if ($driver === 'sqlite') {
     try {
         $pdo = connect_sqlite();
@@ -144,6 +165,7 @@ try {
             PDO::ATTR_EMULATE_PREPARES   => false,
         ]
     );
+    apply_mysql_schema($pdo);
     run_migrations($pdo, 'mysql');
 } catch (PDOException $e) {
     $allowSqliteFallback = (string)(getenv('DB_FALLBACK_SQLITE') ?: '0') === '1';
